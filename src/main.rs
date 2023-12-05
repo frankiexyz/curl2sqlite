@@ -1,37 +1,33 @@
-use reqwest;
-use std::fs;
 use chrono::Local;
-use std::io::{Write,ErrorKind};
-use rusqlite::{params, Connection, Result};
-use tokio;
-use std::time::{Instant, Duration};
 use clap::{App, Arg};
-use log::{debug, LevelFilter};
 use env_logger::Builder;
+use log::{debug, LevelFilter};
+use reqwest;
+use rusqlite::{params, Connection, Result};
+use std::fs;
+use std::io::{ErrorKind, Write};
 use std::thread;
-
+use std::time::{Duration, Instant};
+use tokio;
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let matches = App::new("My Rust Program")
-    .version("1.0")
-    .author("Your Name")
-    .about("Does awesome things")
-    .arg(
-        Arg::new("debug")
-            .short('d')
-            .long("debug")
-            .help("Activates debug mode")
-            .takes_value(false),
-    )
-    .arg(
-        Arg::new("every")
-            .takes_value(true)
-    )
-    .get_matches();
-    let every_sec = if matches.is_present("every") { 
+        .version("1.0")
+        .author("Your Name")
+        .about("Does awesome things")
+        .arg(
+            Arg::new("debug")
+                .short('d')
+                .long("debug")
+                .help("Activates debug mode")
+                .takes_value(false),
+        )
+        .arg(Arg::new("every").takes_value(true))
+        .get_matches();
+    let every_sec = if matches.is_present("every") {
         matches.value_of("input").unwrap()
-    } else{
+    } else {
         "60"
     };
     let every_sec_u64 = every_sec.parse::<u64>().unwrap();
@@ -50,11 +46,14 @@ async fn main() -> Result<()> {
         let urls = read_urls_from_file("targets.txt");
         debug!("Current time: {}", now.format("%Y-%m-%d %H:%M:%S"));
         let conn = Connection::open("my_database.db")?;
-        let table_exists = conn.query_row(
-            "SELECT count(*) FROM request_data WHERE type='table' AND name='request_data'",
-            [],
-            |row| row.get::<_, i32>(0),
-        ).unwrap_or(0) > 0;
+        let table_exists = conn
+            .query_row(
+                "SELECT count(*) FROM request_data WHERE type='table' AND name='request_data'",
+                [],
+                |row| row.get::<_, i32>(0),
+            )
+            .unwrap_or(0)
+            > 0;
         if !table_exists {
             conn.execute(
                 "CREATE TABLE IF NOT EXISTS request_data (
@@ -78,7 +77,6 @@ async fn main() -> Result<()> {
     }
 }
 
-
 async fn fetch_and_store(url: &str, conn: &Connection) -> Result<()> {
     // Make a GET request
     debug!("{}", format!("Going to curl {}", url));
@@ -91,7 +89,8 @@ async fn fetch_and_store(url: &str, conn: &Connection) -> Result<()> {
     let body = res.text().await.unwrap();
 
     // Convert the headers into a string
-    let headers_str = headers.iter()
+    let headers_str = headers
+        .iter()
         .map(|(key, value)| format!("{}: {:?}", key, value))
         .collect::<Vec<String>>()
         .join("\n");
@@ -105,7 +104,6 @@ async fn fetch_and_store(url: &str, conn: &Connection) -> Result<()> {
 
     Ok(())
 }
-    
 
 fn read_urls_from_file(file_path: &str) -> Vec<String> {
     match fs::read_to_string(file_path) {
@@ -114,7 +112,7 @@ fn read_urls_from_file(file_path: &str) -> Vec<String> {
             match e.kind() {
                 ErrorKind::NotFound => {
                     eprintln!("File not found: {}", file_path);
-                },
+                }
                 _ => {
                     eprintln!("Error reading file: {}", e);
                 }
