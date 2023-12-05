@@ -12,10 +12,9 @@ use tokio;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let matches = App::new("My Rust Program")
+    let matches = App::new("curl to sqlite")
         .version("1.0")
-        .author("Your Name")
-        .about("Does awesome things")
+        .author("F")
         .arg(
             Arg::new("debug")
                 .short('d')
@@ -61,8 +60,8 @@ async fn main() -> Result<()> {
                         timestamp TIMESTAMP NOT NULL,
                         target TEXT NOT NULL,
                         connection_time FLOAT,
+                        remote_addr TEXT,
                         status_code INTEGER NOT NULL,
-                        response_text TEXT,
                         header_text TEXT
                         )",
                 [],
@@ -85,8 +84,9 @@ async fn fetch_and_store(url: &str, conn: &Connection) -> Result<()> {
 
     // Get the status code and the body
     let status_code = res.status().as_u16();
+    let remote_addr = res.remote_addr().unwrap().ip().to_string();
     let headers = res.headers().clone();
-    let body = res.text().await.unwrap();
+    //    let body = res.text().await.unwrap();
 
     // Convert the headers into a string
     let headers_str = headers
@@ -98,8 +98,8 @@ async fn fetch_and_store(url: &str, conn: &Connection) -> Result<()> {
     let duration = start.elapsed().as_millis() as f64;
     // Insert data into the table
     conn.execute(
-        "INSERT INTO request_data (status_code, timestamp, target, connection_time, response_text, header_text) VALUES (?1, datetime('now'), ?2, ?3, ?4, ?5)",
-        params![status_code, url, duration, body, headers_str],
+        "INSERT INTO request_data (status_code, timestamp, target, connection_time, remote_addr, header_text) VALUES (?1, datetime('now'), ?2, ?3, ?4, ?5)",
+        params![status_code, url, duration, remote_addr, headers_str],
     )?;
 
     Ok(())
