@@ -23,10 +23,10 @@ async fn main() -> Result<()> {
                 .help("Activates debug mode")
                 .takes_value(false),
         )
-        .arg(Arg::new("every").takes_value(true))
+        .arg(Arg::new("every").short('e').long("every").takes_value(true))
         .get_matches();
     let every_sec = if matches.is_present("every") {
-        matches.value_of("input").unwrap()
+        matches.value_of("every").unwrap()
     } else {
         "60"
     };
